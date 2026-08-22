@@ -5,5 +5,8 @@ publish = ".next"
 [build.environment]
 NODE_VERSION = "20"
 
+[functions]
+included_files = ["node_modules/squirrelscan/**", "node_modules/.bin/squirrel"]
+
 [[plugins]]
 package = "@netlify/plugin-nextjs"

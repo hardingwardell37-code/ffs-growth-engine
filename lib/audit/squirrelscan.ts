@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 
 export class SquirrelscanProvider implements AuditProvider {
   async runAudit(websiteUrl: string) {
-    const binary = process.env.SQUIRRELSCAN_BIN || path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "squirrel.cmd" : "squirrel");
+    const binary = process.env.SQUIRRELSCAN_BIN || path.join(process.cwd(), "node_modules", "squirrelscan", "bin", process.platform === "win32" ? "squirrel.exe" : "squirrel");
     const { stdout } = await execFileAsync(binary, ["audit", websiteUrl, "--format", "json", "--max-pages", "200"], {
       timeout: 10 * 60_000,
       maxBuffer: 50 * 1024 * 1024,

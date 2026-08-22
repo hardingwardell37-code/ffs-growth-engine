@@ -1,6 +1,9 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { runSiteCrawl } from "@/lib/crawler/engine";
+import { runWebsiteAnalysis } from "@/lib/growth/analyze";
+import { after } from "next/server";
+
+export const maxDuration = 900;
 
 export async function POST(
   req: Request,
@@ -38,7 +41,7 @@ export async function POST(
     try {
       const body = (await req.json()) as { maxPages?: number };
       if (body.maxPages && typeof body.maxPages === "number" && body.maxPages > 0) {
-        maxPages = body.maxPages;
+        maxPages = Math.min(500, body.maxPages);
       }
     } catch {
       // No body or invalid JSON — use defaults
@@ -54,12 +57,14 @@ export async function POST(
     });
 
     // Fire-and-forget: run crawl in background using the pre-created record
-    runSiteCrawl(siteId, site.domain, maxPages, crawl.id).catch((error) => {
-      console.error(`Background crawl failed for site ${siteId}:`, error);
+    after(async () => {
+      await runWebsiteAnalysis(siteId, site.domain, crawl.id, maxPages).catch((error) => {
+        console.error(`Background analysis failed for site ${siteId}:`, error);
+      });
     });
 
     return Response.json(
-      { crawlId: crawl.id, status: "RUNNING" },
+      { crawlId: crawl.id, status: "QUEUED" },
       { status: 202 }
     );
   } catch (error) {

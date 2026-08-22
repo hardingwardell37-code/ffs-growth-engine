@@ -26,10 +26,10 @@ export default async function LoginPage() {
             </svg>
           </div>
           <h1 className="font-heading text-atom-display1 font-semibold tracking-tight text-foreground">
-            CrawlSEO
+            FFS Growth Engine
           </h1>
           <p className="mt-2 text-atom-body text-muted-foreground">
-            Self-hosted search ops for founders
+            Website intelligence for practical growth
           </p>
         </div>
 
@@ -38,7 +38,7 @@ export default async function LoginPage() {
             Sign in
           </h2>
           <p className="mt-2 text-atom-body text-muted-foreground">
-            Connect Google Search Console with read-only access.
+            Sign in to analyze client websites and review grounded recommendations.
           </p>
 
           <form
@@ -54,23 +54,12 @@ export default async function LoginPage() {
           </form>
 
           <div className="mt-6 space-y-2 border-t border-border pt-5 text-atom-caption text-muted-foreground">
-            <p>· Keywords, positions, CTR from GSC</p>
-            <p>· Technical crawl & Core Web Vitals</p>
-            <p>· Data stays on your server</p>
+            <p>· Real crawl and technical audit evidence</p>
+            <p>· Transparent health scoring and priorities</p>
+            <p>· Protected client workspaces</p>
           </div>
         </div>
 
-        <p className="mt-8 text-center text-atom-caption text-muted-foreground">
-          UI inspired by{" "}
-          <a
-            href="https://atomizedesign.com/"
-            className="font-medium text-primary hover:underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Atomize PRO
-          </a>
-        </p>
       </div>
     </div>
   );

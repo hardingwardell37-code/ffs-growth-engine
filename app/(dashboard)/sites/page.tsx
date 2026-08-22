@@ -31,17 +31,17 @@ export default async function SitesPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Properties"
-        title="Sites"
-        description="Connect and sync Google Search Console properties."
+        eyebrow="Client portfolio"
+        title="Websites"
+        description="Add a client and analyze a real business website."
         actions={<AddSiteModal />}
       />
 
       {sites.length === 0 ? (
         <EmptyState
           icon="⊕"
-          title="Connect your first property"
-          description="Choose a domain or URL-prefix property from Search Console. CrawlSEO stores your metrics locally."
+          title="Add your first client"
+          description="Enter the business profile and website URL to create a protected workspace."
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

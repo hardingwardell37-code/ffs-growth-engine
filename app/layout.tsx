@@ -24,11 +24,11 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "CrawlSEO",
-    template: "%s · CrawlSEO",
+    default: "FFS Growth Engine",
+    template: "%s · FFS Growth Engine",
   },
   description:
-    "Self-hosted SEO monitoring — GSC, crawl health, Core Web Vitals",
+    "Evidence-based website health and growth priorities",
   icons: {
     icon: [
       {

@@ -15,7 +15,7 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
-  googleTokens  Json?     // Encrypted GSC OAuth tokens
+  googleTokens  Json? // Encrypted GSC OAuth tokens
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -24,21 +24,58 @@ model User {
   sites         Site[]
   alerts        Alert[]
   apiKeys       ApiKey[]
+  organizations Organization[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  ownerId   String
+  name      String   @default("FFS")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  clients   Client[]
+
+  @@unique([ownerId, name])
+}
+
+model Client {
+  id              String           @id @default(cuid())
+  organizationId  String
+  businessName    String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  websites        Site[]
+  businessProfile BusinessProfile?
+
+  @@index([organizationId])
+}
+
+model BusinessProfile {
+  id             String @id @default(cuid())
+  clientId       String @unique
+  industry       String
+  primaryService String
+  city           String
+  state          String
+  competitors    Json?
+  client         Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -51,7 +88,7 @@ model Session {
   userId       String
   expires      DateTime
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -67,13 +104,13 @@ model VerificationToken {
 model ApiKey {
   id                String   @id @default(cuid())
   userId            String
-  provider          String   // "dataforseo"
+  provider          String // "dataforseo"
   encryptedLogin    String
   encryptedPassword String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
 }
@@ -83,12 +120,14 @@ model ApiKey {
 model Site {
   id          String   @id @default(cuid())
   userId      String
-  domain      String   // e.g. "brandson.digital"
-  gscProperty String?  // e.g. "sc-domain:brandson.digital"
+  clientId    String?
+  domain      String // e.g. "brandson.digital"
+  gscProperty String? // e.g. "sc-domain:brandson.digital"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client        Client?             @relation(fields: [clientId], references: [id], onDelete: Cascade)
   keywords      Keyword[]
   pages         Page[]
   crawls        Crawl[]
@@ -96,8 +135,13 @@ model Site {
   alerts        Alert[]
   savedKeywords SavedKeyword[]
   rankSnapshots RankSnapshot[]
+  findings      AuditFinding[]
+  healthScores  HealthScore[]
+  opportunities GrowthOpportunity[]
+  jobs          AnalysisJob[]
 
   @@unique([userId, domain])
+  @@index([clientId])
 }
 
 // ============ GSC DATA ============
@@ -105,17 +149,17 @@ model Site {
 model Keyword {
   id          String   @id @default(cuid())
   siteId      String
-  query       String   // The search query
+  query       String // The search query
   date        DateTime // Date of the data point
   clicks      Int      @default(0)
   impressions Int      @default(0)
   ctr         Float    @default(0)
   position    Float    @default(0)
-  page        String?  // Landing page URL
-  device      String?  // DESKTOP, MOBILE, TABLET
-  country     String?  // Country code
+  page        String? // Landing page URL
+  device      String? // DESKTOP, MOBILE, TABLET
+  country     String? // Country code
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, query, date])
   @@index([siteId, date])
@@ -132,7 +176,7 @@ model Page {
   ctr         Float    @default(0)
   position    Float    @default(0)
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, url, date])
   @@index([siteId, date])
@@ -148,7 +192,7 @@ model SavedKeyword {
   notes     String?
   createdAt DateTime @default(now())
 
-  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, query])
   @@index([siteId])
@@ -166,7 +210,7 @@ model RankSnapshot {
   page        String?
   date        DateTime
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, query, date])
   @@index([siteId, date])
@@ -183,15 +227,144 @@ model Crawl {
   finishedAt  DateTime?
   pagesFound  Int         @default(0)
   issuesFound Int         @default(0)
-  healthScore Int?        // 0-100
+  healthScore Int? // 0-100
   maxPages    Int         @default(200)
 
-  site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  issues      CrawlIssue[]
-  auditPages  AuditPage[]
-  auditLinks  AuditLink[]
+  site              Site                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  issues            CrawlIssue[]
+  auditPages        AuditPage[]
+  auditLinks        AuditLink[]
+  findings          AuditFinding[]
+  healthScoreDetail HealthScore?
+  opportunities     GrowthOpportunity[]
+  jobs              AnalysisJob[]
 
   @@index([siteId, startedAt])
+}
+
+model AuditFinding {
+  id          String          @id @default(cuid())
+  siteId      String
+  crawlId     String
+  source      FindingSource
+  ruleId      String
+  category    FindingCategory
+  severity    FindingSeverity
+  url         String?
+  title       String
+  description String
+  evidence    Json?
+  remediation String?
+  createdAt   DateTime        @default(now())
+  site        Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  crawl       Crawl           @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, severity])
+  @@index([crawlId])
+}
+
+enum FindingSource {
+  CRAWLSEO
+  SQUIRRELSCAN
+  PAGESPEED
+  GSC
+  DATAFORSEO
+}
+
+enum FindingCategory {
+  SEO
+  TECHNICAL
+  PERFORMANCE
+  ACCESSIBILITY
+  SITE_INTEGRITY
+}
+
+enum FindingSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+model HealthScore {
+  id            String   @id @default(cuid())
+  siteId        String
+  crawlId       String   @unique
+  overall       Int
+  seo           Int
+  technical     Int
+  performance   Int
+  accessibility Int
+  siteIntegrity Int
+  methodology   Json
+  createdAt     DateTime @default(now())
+  site          Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  crawl         Crawl    @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+}
+
+model GrowthOpportunity {
+  id                String              @id @default(cuid())
+  siteId            String
+  crawlId           String
+  title             String
+  type              String
+  description       String
+  evidence          Json
+  impactScore       Int
+  confidenceScore   Int
+  effortScore       Int
+  priorityScore     Int
+  priority          OpportunityPriority
+  recommendedAction String
+  createdAt         DateTime            @default(now())
+  site              Site                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  crawl             Crawl               @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, priorityScore])
+  @@index([crawlId])
+}
+
+enum OpportunityPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model AnalysisJob {
+  id         String    @id @default(cuid())
+  siteId     String
+  crawlId    String?
+  type       JobType
+  status     JobStatus @default(QUEUED)
+  startedAt  DateTime?
+  finishedAt DateTime?
+  error      String?
+  createdAt  DateTime  @default(now())
+  site       Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  crawl      Crawl?    @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, createdAt])
+}
+
+enum JobType {
+  CRAWL_WEBSITE
+  RUN_AUDIT
+  CALCULATE_HEALTH
+  BUILD_OPPORTUNITIES
+  SYNC_GSC
+}
+
+enum JobStatus {
+  QUEUED
+  CRAWLING
+  AUDITING
+  ANALYZING
+  COMPLETE
+  FAILED
 }
 
 enum CrawlStatus {
@@ -204,38 +377,38 @@ enum CrawlStatus {
 // ============ AUDIT PAGE DATA ============
 
 model AuditPage {
-  id              String  @id @default(cuid())
-  crawlId         String
-  url             String
-  statusCode      Int
-  redirectUrl     String?
+  id          String  @id @default(cuid())
+  crawlId     String
+  url         String
+  statusCode  Int
+  redirectUrl String?
 
-  title           String?
-  description     String?
-  canonical       String?
-  robotsMeta      String?
+  title       String?
+  description String?
+  canonical   String?
+  robotsMeta  String?
 
-  h1Count         Int     @default(0)
-  h1s             Json?   // Array of H1 text
-  wordCount       Int     @default(0)
+  h1Count   Int   @default(0)
+  h1s       Json? // Array of H1 text
+  wordCount Int   @default(0)
 
-  imageCount      Int     @default(0)
-  imagesMissingAlt Int    @default(0)
+  imageCount       Int @default(0)
+  imagesMissingAlt Int @default(0)
 
-  internalLinks   Int     @default(0)
-  externalLinks   Int     @default(0)
+  internalLinks Int @default(0)
+  externalLinks Int @default(0)
 
-  hasSchema       Boolean @default(false)
-  hreflangTags    Json?   // Array of hreflang values
+  hasSchema    Boolean @default(false)
+  hreflangTags Json? // Array of hreflang values
 
-  contentScore    Int     @default(0)  // 0-100
-  contentHash     String? // SHA-256 of body text
+  contentScore Int     @default(0) // 0-100
+  contentHash  String? // SHA-256 of body text
 
-  responseTimeMs  Int     @default(0)
-  byteSize        Int     @default(0)
-  indexable       Boolean @default(true)
+  responseTimeMs Int     @default(0)
+  byteSize       Int     @default(0)
+  indexable      Boolean @default(true)
 
-  crawl           Crawl   @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  crawl Crawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
 
   @@index([crawlId])
   @@index([crawlId, url])
@@ -244,52 +417,52 @@ model AuditPage {
 // ============ AUDIT LINK GRAPH ============
 
 model AuditLink {
-  id          String  @id @default(cuid())
-  crawlId     String
-  sourceUrl   String
-  targetUrl   String
-  anchorText  String?
-  isInternal  Boolean @default(true)
-  isNofollow  Boolean @default(false)
-  statusCode  Int?
+  id         String  @id @default(cuid())
+  crawlId    String
+  sourceUrl  String
+  targetUrl  String
+  anchorText String?
+  isInternal Boolean @default(true)
+  isNofollow Boolean @default(false)
+  statusCode Int?
 
-  crawl       Crawl   @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  crawl Crawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
 
   @@index([crawlId])
   @@index([crawlId, sourceUrl])
 }
 
 model CrawlIssue {
-  id          String        @id @default(cuid())
-  crawlId     String
-  url         String
-  type        IssueType
-  severity    IssueSeverity
-  message     String
-  details     Json?         // Additional context
+  id       String        @id @default(cuid())
+  crawlId  String
+  url      String
+  type     IssueType
+  severity IssueSeverity
+  message  String
+  details  Json? // Additional context
 
-  crawl       Crawl         @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  crawl Crawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
 
   @@index([crawlId, type])
 }
 
 enum IssueType {
-  BROKEN_LINK           // 404, 500, etc.
-  REDIRECT              // 301, 302 chains
-  MISSING_TITLE         // No <title> tag
-  MISSING_DESCRIPTION   // No meta description
-  DUPLICATE_TITLE       // Same title on multiple pages
+  BROKEN_LINK // 404, 500, etc.
+  REDIRECT // 301, 302 chains
+  MISSING_TITLE // No <title> tag
+  MISSING_DESCRIPTION // No meta description
+  DUPLICATE_TITLE // Same title on multiple pages
   DUPLICATE_DESCRIPTION // Same description on multiple pages
-  MISSING_H1            // No H1 heading
-  MULTIPLE_H1           // More than one H1
-  MISSING_ALT           // Images without alt text
-  MISSING_CANONICAL     // No canonical tag
-  MISSING_ROBOTS        // No robots.txt
-  MISSING_SITEMAP       // No sitemap.xml
-  MISSING_SCHEMA        // No structured data
-  SLOW_PAGE             // Load time > 3s
-  MIXED_CONTENT         // HTTP resources on HTTPS page
-  LARGE_PAGE            // Page size > 3MB
+  MISSING_H1 // No H1 heading
+  MULTIPLE_H1 // More than one H1
+  MISSING_ALT // Images without alt text
+  MISSING_CANONICAL // No canonical tag
+  MISSING_ROBOTS // No robots.txt
+  MISSING_SITEMAP // No sitemap.xml
+  MISSING_SCHEMA // No structured data
+  SLOW_PAGE // Load time > 3s
+  MIXED_CONTENT // HTTP resources on HTTPS page
+  LARGE_PAGE // Page size > 3MB
 }
 
 enum IssueSeverity {
@@ -301,24 +474,24 @@ enum IssueSeverity {
 // ============ CORE WEB VITALS ============
 
 model VitalsReport {
-  id          String   @id @default(cuid())
-  siteId      String
-  url         String
-  date        DateTime @default(now())
-  device      String   // MOBILE or DESKTOP
+  id     String   @id @default(cuid())
+  siteId String
+  url    String
+  date   DateTime @default(now())
+  device String // MOBILE or DESKTOP
 
   // Core Web Vitals
-  lcp         Float?   // Largest Contentful Paint (seconds)
-  fid         Float?   // First Input Delay (milliseconds)
-  cls         Float?   // Cumulative Layout Shift (score)
-  inp         Float?   // Interaction to Next Paint (milliseconds)
+  lcp Float? // Largest Contentful Paint (seconds)
+  fid Float? // First Input Delay (milliseconds)
+  cls Float? // Cumulative Layout Shift (score)
+  inp Float? // Interaction to Next Paint (milliseconds)
 
   // Performance
-  perfScore   Int?     // 0-100 Lighthouse performance score
-  speedIndex  Float?   // Speed Index (seconds)
-  ttfb        Float?   // Time to First Byte (seconds)
+  perfScore  Int? // 0-100 Lighthouse performance score
+  speedIndex Float? // Speed Index (seconds)
+  ttfb       Float? // Time to First Byte (seconds)
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([siteId, date])
   @@index([siteId, url, date])
@@ -327,26 +500,26 @@ model VitalsReport {
 // ============ ALERTS ============
 
 model Alert {
-  id          String     @id @default(cuid())
-  userId      String
-  siteId      String
-  type        AlertType
-  channel     AlertChannel
-  config      Json       // Thresholds, webhook URL, etc.
-  enabled     Boolean    @default(true)
-  lastFired   DateTime?
-  createdAt   DateTime   @default(now())
+  id        String       @id @default(cuid())
+  userId    String
+  siteId    String
+  type      AlertType
+  channel   AlertChannel
+  config    Json // Thresholds, webhook URL, etc.
+  enabled   Boolean      @default(true)
+  lastFired DateTime?
+  createdAt DateTime     @default(now())
 
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 }
 
 enum AlertType {
-  TRAFFIC_DROP       // Clicks dropped > X%
-  POSITION_CHANGE    // Keyword position changed > X
-  NEW_404            // New broken links detected
-  VITALS_DEGRADED    // Core Web Vitals got worse
-  CRAWL_ISSUES       // New crawl issues detected
+  TRAFFIC_DROP // Clicks dropped > X%
+  POSITION_CHANGE // Keyword position changed > X
+  NEW_404 // New broken links detected
+  VITALS_DEGRADED // Core Web Vitals got worse
+  CRAWL_ISSUES // New crawl issues detected
 }
 
 enum AlertChannel {

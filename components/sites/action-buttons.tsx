@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const PAGE_LIMIT_PRESETS = ["25", "50", "100", "200"] as const;
-const MAX_CUSTOM_PAGES = 2000;
+const MAX_CUSTOM_PAGES = 500;
 const MIN_CUSTOM_PAGES = 1;
 
 export function CrawlButton({ siteId }: { siteId: string }) {
@@ -43,7 +43,7 @@ export function CrawlButton({ siteId }: { siteId: string }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Crawl failed");
-      setMsg(`Crawl started (ID: ${data.crawlId?.slice(0, 8)}...)`);
+      setMsg(`Analysis queued (ID: ${data.crawlId?.slice(0, 8)}...)`);
       router.refresh();
     } catch (e) {
       setErr(true);
@@ -86,7 +86,7 @@ export function CrawlButton({ siteId }: { siteId: string }) {
           disabled={loading || (isCustom && (!customValue || Number(customValue) < MIN_CUSTOM_PAGES))}
           onClick={run}
         >
-          {loading ? "Starting…" : "Run crawl"}
+          {loading ? "Starting…" : "Analyze Website"}
         </Button>
       </div>
       {msg && (

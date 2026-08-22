@@ -78,7 +78,7 @@ export function AppShell({
         {!collapsed && (
           <div>
             <p className="text-[15px] font-semibold tracking-tight text-foreground">
-              CrawlSEO
+              FFS Growth Engine
             </p>
             <p className="text-[11px] text-muted-foreground">Search operations</p>
           </div>
@@ -232,7 +232,7 @@ export function AppShell({
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <span className="text-xs font-bold">C</span>
             </div>
-            <span className="font-semibold">CrawlSEO</span>
+            <span className="font-semibold">FFS Growth Engine</span>
           </div>
           <ThemeToggle />
         </header>
